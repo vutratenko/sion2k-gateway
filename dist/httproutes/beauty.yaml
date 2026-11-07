@@ -14,14 +14,14 @@ spec:
   rules:
     - matches:
         - path:
-            type: Prefix
+            type: PathPrefix
             value: /api
       backendRefs:
         - name: chem-ya-krasila-api
           port: 8080
     - matches:
         - path:
-            type: Prefix
+            type: PathPrefix
             value: /
       backendRefs:
         - name: chem-ya-krasila-web

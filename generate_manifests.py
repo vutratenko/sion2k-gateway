@@ -78,7 +78,15 @@ def listener_section_name(hostname: str) -> str:
     return f"https-{safe[:53]}"
 
 
+def path_type(ptype: str) -> str:
+    """Gateway API v1 uses PathPrefix, not Ingress-style Prefix."""
+    if ptype == "Prefix":
+        return "PathPrefix"
+    return ptype
+
+
 def rule_block(path: str, ptype: str, port: int, svc: str) -> str:
+    ptype = path_type(ptype)
     return (
         f"    - matches:\n"
         f"        - path:\n"
@@ -103,6 +111,7 @@ def httproute(
     host_yaml = "\n".join(f"    - {h}" for h in hostnames)
     rule_blocks = []
     for path, ptype, port, svc in rules:
+        ptype = path_type(ptype)
         rule_blocks.append(
             f"    - matches:\n"
             f"        - path:\n"
@@ -150,18 +159,25 @@ def main() -> None:
         ),
     )
 
-    from_lines = "\n".join(
-        "    - group: gateway.networking.k8s.io\n      kind: HTTPRoute\n      namespace: "
-        + ns
-        for ns in KNOWN_ROUTE_NAMESPACES
-    )
-    w(
-        OUT / "02-reference-grants.yaml",
-        doc_header("Cross-namespace attachment to Gateway public")
-        + f"""apiVersion: gateway.networking.k8s.io/v1beta1
+    ref_grant_files: list[str] = []
+    chunk_size = 16  # API limit per ReferenceGrant spec.from
+    for idx, chunk in enumerate(
+        [KNOWN_ROUTE_NAMESPACES[i : i + chunk_size] for i in range(0, len(KNOWN_ROUTE_NAMESPACES), chunk_size)]
+    ):
+        suffix = "" if idx == 0 and len(KNOWN_ROUTE_NAMESPACES) <= chunk_size else f"-{idx + 1}"
+        fname = f"02-reference-grants{suffix}.yaml"
+        ref_grant_files.append(fname)
+        from_lines = "\n".join(
+            "    - group: gateway.networking.k8s.io\n      kind: HTTPRoute\n      namespace: " + ns
+            for ns in chunk
+        )
+        w(
+            OUT / fname,
+            doc_header(f"ReferenceGrant{suffix or ''}")
+            + f"""apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
-  name: allow-httproute-to-public
+  name: allow-httproute-to-public{suffix}
   namespace: {GATEWAY_NS}
 spec:
   from:
@@ -171,7 +187,7 @@ spec:
       kind: Gateway
       name: {GATEWAY_NAME}
 """,
-    )
+        )
 
     # hostname -> (tls_secret_in_gateway_system, notes)
     tls: list[tuple[str, str, str | None]] = [
@@ -565,24 +581,36 @@ spec:
         ),
     )
 
+    def put_path_rules_routes(
+        file_stem: str,
+        route_name: str,
+        namespace: str,
+        hostnames: list[str],
+        paths: list[tuple[str, str, int, str]],
+    ) -> None:
+        """Split into multiple HTTPRoutes — max 16 rules each (Gateway API limit)."""
+        for part, chunk in enumerate([paths[i : i + 16] for i in range(0, len(paths), 16)]):
+            suffix = "" if part == 0 and len(paths) <= 16 else f"-{part + 1}"
+            host_lines = "\n".join(f"    - {h}" for h in hostnames)
+            body = (
+                f"apiVersion: gateway.networking.k8s.io/v1\n"
+                f"kind: HTTPRoute\n"
+                f"metadata:\n"
+                f"  name: {route_name}{suffix}\n"
+                f"  namespace: {namespace}\n"
+                f"spec:\n"
+                f"  parentRefs:\n"
+                f"    - name: {GATEWAY_NAME}\n"
+                f"      namespace: {GATEWAY_NS}\n"
+                f"  hostnames:\n"
+                f"{host_lines}\n"
+                f"  rules:\n"
+            )
+            for path, ptype, port, svc in chunk:
+                body += rule_block(path, ptype, port, svc)
+            put(f"{file_stem}{suffix or ''}.yaml", body)
+
     # --- Challenger prod API (shared host)
-    chall_body = dedent(
-        f"""\
-        apiVersion: gateway.networking.k8s.io/v1
-        kind: HTTPRoute
-        metadata:
-          name: challenger-api-prod
-          namespace: challenger-prod
-        spec:
-          parentRefs:
-            - name: {GATEWAY_NAME}
-              namespace: {GATEWAY_NS}
-          hostnames:
-            - challenger.api.sion2k.ru
-          rules:
-        """
-    )
-    # List longest paths first for documentation (Cilium picks best match anyway)
     paths_prod = [
         ("/api/v1/health", "Prefix", 8080, "challenger-bots-prod-service"),
         ("/api/v1/bots", "Prefix", 8080, "challenger-bots-prod-service"),
@@ -615,9 +643,13 @@ spec:
         ("/static/achievements", "Prefix", 8080, "challenger-achievements-prod-service"),
         ("/", "Prefix", 8080, "challenger-backend-prod-service"),
     ]
-    for path, ptype, port, svc in paths_prod:
-        chall_body += rule_block(path, ptype, port, svc)
-    put("challenger-prod-api.yaml", chall_body)
+    put_path_rules_routes(
+        "challenger-prod-api",
+        "challenger-api-prod",
+        "challenger-prod",
+        ["challenger.api.sion2k.ru"],
+        paths_prod,
+    )
 
     put(
         "challenger-prod-landing.yaml",
@@ -656,23 +688,6 @@ spec:
         ),
     )
 
-    # Stage API
-    stage_body = dedent(
-        f"""\
-        apiVersion: gateway.networking.k8s.io/v1
-        kind: HTTPRoute
-        metadata:
-          name: challenger-api-stage
-          namespace: challenger-stage
-        spec:
-          parentRefs:
-            - name: {GATEWAY_NAME}
-              namespace: {GATEWAY_NS}
-          hostnames:
-            - challenger-stage.api.sion2k.ru
-          rules:
-        """
-    )
     paths_stage = [
         ("/api/v1/health", "Prefix", 8080, "challenger-bots-stage-service"),
         ("/api/v1/bots", "Prefix", 8080, "challenger-bots-stage-service"),
@@ -707,9 +722,13 @@ spec:
         ("/api/v1/me/legals", "Prefix", 8080, "challenger-legals-stage-service"),
         ("/", "Prefix", 8080, "challenger-backend-stage-service"),
     ]
-    for path, ptype, port, svc in paths_stage:
-        stage_body += rule_block(path, ptype, port, svc)
-    put("challenger-stage-api.yaml", stage_body)
+    put_path_rules_routes(
+        "challenger-stage-api",
+        "challenger-api-stage",
+        "challenger-stage",
+        ["challenger-stage.api.sion2k.ru"],
+        paths_stage,
+    )
 
     put(
         "challenger-stage-landing.yaml",
@@ -795,7 +814,8 @@ spec:
         ),
     )
 
-    kres = ["  - 01-cilium-pool.yaml", "  - 02-reference-grants.yaml", "  - 03-gateway-public.yaml"]
+    kres = ["  - 01-cilium-pool.yaml", "  - 03-gateway-public.yaml"]
+    kres.extend(f"  - {f}" for f in sorted(ref_grant_files))
     for fn in sorted(route_files):
         kres.append(f"  - httproutes/{fn}")
     w(

@@ -14,14 +14,14 @@ spec:
   rules:
     - matches:
         - path:
-            type: Prefix
+            type: PathPrefix
             value: /api/v1
       backendRefs:
         - name: grafinya-backend
           port: 8080
     - matches:
         - path:
-            type: Prefix
+            type: PathPrefix
             value: /
       backendRefs:
         - name: grafinya-frontend
