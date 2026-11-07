@@ -54,7 +54,7 @@ echo "=== Gap: Ingress host without matching HTTPRoute/TLSRoute host on public =
     | select(.metadata.namespace | test($rx) | not)
     | select((.spec.ingressClassName // "") == "nginx" or .spec.ingressClassName == null)
     | .spec.rules[]?.host // empty
-  ' | sort -u
+  ' | LC_ALL=C sort -u
 } > /tmp/ing-hosts.$$.txt
 
 {
@@ -68,8 +68,10 @@ echo "=== Gap: Ingress host without matching HTTPRoute/TLSRoute host on public =
     | select([.spec.parentRefs[]? | select(.name == $gw and (.namespace // "gateway-system") == $gwns)] | length > 0)
     | .spec.hostnames[]?
   ' 2>/dev/null || true
-} | sort -u > /tmp/route-hosts.$$.txt
+} | LC_ALL=C sort -u > /tmp/route-hosts.$$.txt
 
+LC_ALL=C sort -u -o /tmp/ing-hosts.$$.txt /tmp/ing-hosts.$$.txt
+LC_ALL=C sort -u -o /tmp/route-hosts.$$.txt /tmp/route-hosts.$$.txt
 comm -23 /tmp/ing-hosts.$$.txt /tmp/route-hosts.$$.txt | while read -r h; do
   echo "  MISSING_ROUTE  $h"
 done
