@@ -105,17 +105,6 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    - name: https-tasks-sion2k-ru
-      hostname: "tasks.sion2k.ru"
-      port: 443
-      protocol: HTTPS
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: tasks-sion2k-ru-tls
-      allowedRoutes:
-        namespaces:
-          from: All
     - name: https-hass-sion2k-ru
       hostname: "hass.sion2k.ru"
       port: 443
@@ -140,6 +129,17 @@ spec:
           from: All
     - name: https-sion2k-ru
       hostname: "sion2k.ru"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: sion2k-site-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-www-sion2k-ru
+      hostname: "www.sion2k.ru"
       port: 443
       protocol: HTTPS
       tls:
@@ -347,14 +347,12 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    - name: https-miniapp-challenger-stage-sion2k-ru
-      hostname: "miniapp.challenger-stage.sion2k.ru"
+    - name: tls-cheeseburger-sion2k-ru-passthrough
+      hostname: "cheeseburger.sion2k.ru"
       port: 443
-      protocol: HTTPS
+      protocol: TLS
       tls:
-        mode: Terminate
-        certificateRefs:
-          - name: challenger-miniapp-tls
+        mode: Passthrough
       allowedRoutes:
         namespaces:
           from: All

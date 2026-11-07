@@ -51,10 +51,10 @@ spec:
       namespace: openclaw
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: planka
+      namespace: shturval-ctf
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: shturval-ctf
+      namespace: sion2k-site
   to:
     - group: gateway.networking.k8s.io
       kind: Gateway

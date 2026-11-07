@@ -86,6 +86,13 @@ if command -v argocd &>/dev/null; then
   argocd app sync sion2k-gateway --grpc-web || true
 fi
 
+echo "== Apply dist (server-side) =="
+kubectl apply --server-side --force-conflicts -k "${ROOT}/dist"
+
+echo "== Remove retired HTTPRoutes (planka / miniapp placeholder) =="
+kubectl delete httproute planka -n planka --ignore-not-found
+kubectl delete httproute challenger-bot-webapp-placeholder -n challenger-stage --ignore-not-found
+
 echo "== Wait Gateway public =="
 kubectl wait -n "$GATEWAY_NS" --for=condition=Programmed gateway/public --timeout=300s 2>/dev/null || \
   kubectl get gateway -n "$GATEWAY_NS" public -o yaml | tail -30

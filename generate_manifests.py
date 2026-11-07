@@ -32,6 +32,8 @@ GATEWAY_NAME = "public"
 GATEWAY_NS = "gateway-system"
 GATEWAY_CLASS = "cilium"
 
+KNOWN_TLSROUTE_NAMESPACES = sorted({"telemt"})
+
 # Namespaces that attach HTTPRoutes to Gateway public (extend when adding routes).
 KNOWN_ROUTE_NAMESPACES = sorted(
     {
@@ -42,7 +44,6 @@ KNOWN_ROUTE_NAMESPACES = sorted(
         "istio-system",
         "mlflow",
         "openclaw",
-        "planka",
         "homeassistant",
         "transmission",
         "sion2k-site",
@@ -193,6 +194,30 @@ spec:
 """,
         )
 
+    if KNOWN_TLSROUTE_NAMESPACES:
+        tls_from = "\n".join(
+            "    - group: gateway.networking.k8s.io\n      kind: TLSRoute\n      namespace: " + ns
+            for ns in KNOWN_TLSROUTE_NAMESPACES
+        )
+        ref_grant_files.append("02-reference-grants-tlsroute.yaml")
+        w(
+            OUT / "02-reference-grants-tlsroute.yaml",
+            doc_header("TLSRoute attachment to Gateway public")
+            + f"""apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-tlsroute-to-public
+  namespace: {GATEWAY_NS}
+spec:
+  from:
+{tls_from}
+  to:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {GATEWAY_NAME}
+""",
+        )
+
     # hostname -> (tls_secret_in_gateway_system, notes)
     tls: list[tuple[str, str, str | None]] = [
         ("ao1.l4.sion2k.ru", "advance-report-tls", None),
@@ -203,10 +228,10 @@ spec:
         ("flow.ip-10-31-145-173.shturval.link", "kubeflow-ingress-tls", None),
         ("mlflow.sion2k.ru", "mlflow-sion2k-ru-tls", None),
         ("jaws.sion2k.ru", "jaws-sion2k-ru-tls", None),
-        ("tasks.sion2k.ru", "tasks-sion2k-ru-tls", None),
         ("hass.sion2k.ru", "homeassistant-tls", None),
         ("torrent.sion2k.ru", "torrent-sion2k-ru-tls", "add TLS Certificate; Ingress had force-ssl only"),
-        ("sion2k.ru", "sion2k-site-tls", "cert must cover sion2k.ru + www; single HTTPS listener on sion2k.ru covers both hostnames in HTTPRoute"),
+        ("sion2k.ru", "sion2k-site-tls", None),
+        ("www.sion2k.ru", "sion2k-site-tls", "same cert as apex; separate listener for SNI www"),
         ("ctf.sion2k.ru", "ctf-sion2k-ru-tls", None),
         ("raffle.sion2k.ru", "raffle-sion2k-ru-tls", None),
         ("registry.sion2k.ru", "harbor-ingress", None),
@@ -225,7 +250,11 @@ spec:
         ("athlete.challenger-stage.sion2k.ru", "challenger-athlete-stage-secret-ingress", None),
         ("challenger-stage.sion2k.ru", "challenger-stage-secret-ingress", None),
         ("challenger-landing-stage.sion2k.ru", "challenger-landing-stage-secret-ingress", None),
-        ("miniapp.challenger-stage.sion2k.ru", "challenger-miniapp-tls", "confirm live Service — not in git"),
+    ]
+
+    # TLS passthrough listeners (protocol TLS, no cert on Gateway) — MTProxy telemt, etc.
+    tls_passthrough: list[tuple[str, str]] = [
+        ("cheeseburger.sion2k.ru", "tls-cheeseburger-sion2k-ru-passthrough"),
     ]
 
     listener_lines = []
@@ -254,6 +283,24 @@ spec:
             ).rstrip()
         )
     listeners_block = indent_block("\n".join(listener_lines), 4)
+    passthrough_lines = []
+    for host, lname in tls_passthrough:
+        host_to_section[host] = lname
+        passthrough_lines.append(
+            dedent(
+                f"""\
+                - name: {lname}
+                  hostname: "{host}"
+                  port: 443
+                  protocol: TLS
+                  tls:
+                    mode: Passthrough
+                  allowedRoutes:
+                    namespaces:
+                      from: All"""
+            ).rstrip()
+        )
+    passthrough_block = indent_block("\n".join(passthrough_lines), 4) if passthrough_lines else ""
 
     gw = doc_header("Gateway public + HTTP redirect") + (
         f"apiVersion: gateway.networking.k8s.io/v1\n"
@@ -274,6 +321,7 @@ spec:
         f"        namespaces:\n"
         f"          from: All\n"
         f"{listeners_block}\n"
+        f"{passthrough_block}\n"
         f"---\n"
         f"apiVersion: gateway.networking.k8s.io/v1\n"
         f"kind: HTTPRoute\n"
@@ -336,10 +384,6 @@ spec:
             ["mlflow.sion2k.ru"],
             [("/", "Prefix", 5000, "mlflow")],
         ),
-    )
-    put(
-        "planka.yaml",
-        httproute("planka", "planka", ["tasks.sion2k.ru"], [("/", "Prefix", 1337, "planka")]),
     )
     put(
         "homeassistant.yaml",
@@ -581,7 +625,7 @@ spec:
             "authentik-server",
             "authentik",
             ["auth.sion2k.ru"],
-            [("/", "Prefix", 80, "authentik-server")],
+            [("/", "Prefix", 80, "authentik-mzs5d-server")],
         ),
     )
 
@@ -762,34 +806,31 @@ spec:
         ),
     )
     put(
-        "challenger-stage-miniapp-placeholder.yaml",
+        "telemt-tlsroute.yaml",
         dedent(
             f"""\
-            # Placeholder: confirm Service name for miniapp.challenger-stage.sion2k.ru then fix backendRefs.
-            apiVersion: gateway.networking.k8s.io/v1
-            kind: HTTPRoute
+            # TLS passthrough to telemt Fake-TLS (port 8443); do not terminate at Gateway.
+            apiVersion: gateway.networking.k8s.io/v1alpha2
+            kind: TLSRoute
             metadata:
-              name: challenger-bot-webapp-placeholder
-              namespace: challenger-stage
+              name: telemt
+              namespace: telemt
             spec:
               parentRefs:
                 - name: {GATEWAY_NAME}
                   namespace: {GATEWAY_NS}
+                  sectionName: tls-cheeseburger-sion2k-ru-passthrough
               hostnames:
-                - miniapp.challenger-stage.sion2k.ru
+                - cheeseburger.sion2k.ru
               rules:
-                - matches:
-                    - path:
-                        type: PathPrefix
-                        value: /
-                  backendRefs:
-                    - name: REPLACE_ME_SERVICE
-                      port: 80
+                - backendRefs:
+                    - name: telemt
+                      port: 8443
             """
         ),
     )
 
-    # Transmission + telemt stubs
+    # Transmission stub
     put(
         "transmission-stub.yaml",
         dedent(

@@ -57,11 +57,11 @@ kubectl apply -f argocd/application.yaml
 
 ## Telemt (TLS passthrough)
 
-Для `cheeseburger.sion2k.ru` нужен слушатель с режимом Passthrough (или TCPRoute), не HTTPRoute с терминацией TLS. Сейчас в `dist` есть только placeholder TLS listener; не применяйте его до проектирования passthrough.
+Для `cheeseburger.sion2k.ru` (telemt): Gateway listener **TLS Passthrough** + `TLSRoute` на Service `telemt:8443` (см. `dist/httproutes/telemt-tlsroute.yaml`). Не терминируйте TLS на Gateway для этого хоста.
 
 ## Остальные приложения (не в этом PR)
 
-HTTPRoute для cal-com, planka, mlflow, familygram и т.д. лежат в `dist/httproutes/`. Чтобы убрать дублирующий Ingress после проверки, выключите ingress в соответствующих Helm values / сырых манифестах (как сделано для Challenger).
+HTTPRoute для cal-com, mlflow, familygram и т.д. лежат в `dist/httproutes/`. Чтобы убрать дублирующий Ingress после проверки, выключите ingress в соответствующих Helm values / сырых манифестах (как сделано для Challenger).
 
 ## Kubeflow
 

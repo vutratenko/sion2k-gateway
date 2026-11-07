@@ -17,5 +17,5 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: authentik-server
+        - name: authentik-mzs5d-server
           port: 80

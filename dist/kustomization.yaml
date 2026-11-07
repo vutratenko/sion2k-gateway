@@ -6,6 +6,7 @@ resources:
   - 03-gateway-public.yaml
   - 02-reference-grants-1.yaml
   - 02-reference-grants-2.yaml
+  - 02-reference-grants-tlsroute.yaml
   - httproutes/advance-report.yaml
   - httproutes/authentik.yaml
   - httproutes/beauty.yaml
@@ -21,7 +22,6 @@ resources:
   - httproutes/challenger-stage-athlete.yaml
   - httproutes/challenger-stage-backoffice.yaml
   - httproutes/challenger-stage-landing.yaml
-  - httproutes/challenger-stage-miniapp-placeholder.yaml
   - httproutes/ctf-raffle.yaml
   - httproutes/ctf-scoreboard.yaml
   - httproutes/familygram.yaml
@@ -34,8 +34,8 @@ resources:
   - httproutes/mlflow.yaml
   - httproutes/nextcloud.yaml
   - httproutes/openclaw.yaml
-  - httproutes/planka.yaml
   - httproutes/sion2k-site.yaml
   - httproutes/sklad.yaml
   - httproutes/teammapper.yaml
+  - httproutes/telemt-tlsroute.yaml
   - httproutes/transmission-stub.yaml

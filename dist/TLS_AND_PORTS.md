@@ -8,10 +8,10 @@
 - `flow.ip-10-31-145-173.shturval.link` → Secret `kubeflow-ingress-tls`
 - `mlflow.sion2k.ru` → Secret `mlflow-sion2k-ru-tls`
 - `jaws.sion2k.ru` → Secret `jaws-sion2k-ru-tls`
-- `tasks.sion2k.ru` → Secret `tasks-sion2k-ru-tls`
 - `hass.sion2k.ru` → Secret `homeassistant-tls`
 - `torrent.sion2k.ru` → Secret `torrent-sion2k-ru-tls` — add TLS Certificate; Ingress had force-ssl only
-- `sion2k.ru` → Secret `sion2k-site-tls` — cert must cover sion2k.ru + www; single HTTPS listener on sion2k.ru covers both hostnames in HTTPRoute
+- `sion2k.ru` → Secret `sion2k-site-tls`
+- `www.sion2k.ru` → Secret `sion2k-site-tls` — same cert as apex; separate listener for SNI www
 - `ctf.sion2k.ru` → Secret `ctf-sion2k-ru-tls`
 - `raffle.sion2k.ru` → Secret `raffle-sion2k-ru-tls`
 - `registry.sion2k.ru` → Secret `harbor-ingress`
@@ -30,4 +30,3 @@
 - `athlete.challenger-stage.sion2k.ru` → Secret `challenger-athlete-stage-secret-ingress`
 - `challenger-stage.sion2k.ru` → Secret `challenger-stage-secret-ingress`
 - `challenger-landing-stage.sion2k.ru` → Secret `challenger-landing-stage-secret-ingress`
-- `miniapp.challenger-stage.sion2k.ru` → Secret `challenger-miniapp-tls` — confirm live Service — not in git
