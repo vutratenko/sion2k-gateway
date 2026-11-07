@@ -17,5 +17,5 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: challenger-backoffice-prod-service
+        - name: challenger-backoffice-service
           port: 80

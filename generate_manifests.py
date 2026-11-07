@@ -626,7 +626,7 @@ spec:
         ("/api/v1/webhooks", "Prefix", 8080, "challenger-bots-prod-service"),
         ("/webhooks", "Prefix", 8080, "challenger-bots-prod-service"),
         ("/v1", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/clubs", "Prefix", 8080, "challenger-clubs-prod-service"),
+        ("/api/v1/clubs", "Prefix", 8000, "challenger-clubs-prod-service"),
         ("/api/v1/sports", "Prefix", 8080, "challenger-competitions-prod-service"),
         ("/api/v1/competitions", "Prefix", 8080, "challenger-competitions-prod-service"),
         ("/api/v1/competition-results", "Prefix", 8080, "challenger-competitions-prod-service"),
@@ -679,7 +679,7 @@ spec:
             "challenger-backoffice-prod",
             "challenger-prod",
             ["challenger-admin.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-backoffice-prod-service")],
+            [("/", "Prefix", 80, "challenger-backoffice-service")],
         ),
     )
     put(
@@ -688,7 +688,7 @@ spec:
             "challenger-espocrm",
             "challenger-prod",
             ["challenger-crm.sion2k.ru"],
-            [("/", "Prefix", 8080, "challenger-espocrm")],
+            [("/", "Prefix", 80, "challenger-espocrm")],
         ),
     )
 
@@ -703,7 +703,7 @@ spec:
         ("/api/v1/webhooks", "Prefix", 8080, "challenger-bots-stage-service"),
         ("/webhooks", "Prefix", 8080, "challenger-bots-stage-service"),
         ("/v1", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/clubs", "Prefix", 8080, "challenger-clubs-stage-service"),
+        ("/api/v1/clubs", "Prefix", 8000, "challenger-clubs-stage-service"),
         ("/api/v1/sports", "Prefix", 8080, "challenger-competitions-stage-service"),
         ("/api/v1/competitions", "Prefix", 8080, "challenger-competitions-stage-service"),
         ("/api/v1/competition-results", "Prefix", 8080, "challenger-competitions-stage-service"),
