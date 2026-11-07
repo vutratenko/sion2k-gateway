@@ -65,4 +65,7 @@ HTTPRoute для cal-com, mlflow, familygram и т.д. лежат в `dist/httpr
 
 ## Kubeflow
 
-В `dist/httproutes/kubeflow-*.yaml` маршруты на `istio-ingressgateway`. В Helm values `kubeflow-step-2` задайте `platform-agnostic-mutli-user.exposure: gateway`, `gateway.create: false`, `gateway.name: public`, `gateway.namespace: gateway-system`, уберите Ingress. Полный patch — в репозитории, из которого вы ставите Kubeflow.
+HTTPRoute в `dist/httproutes/kubeflow-*.yaml` → `istio-ingressgateway`. Публикация через SSC (не сырой Helm):
+
+- [docs/kubeflow-ssc-public-gateway.md](docs/kubeflow-ssc-public-gateway.md)
+- `./scripts/patch-kubeflow-step-2-ssc.sh` — merge в `ShturvalServiceConfig/kubeflow-step-2`: `ingress.enabled: false`, `exposure: gateway`, `gateway.create: false`, `name: public`, `namespace: gateway-system`.
