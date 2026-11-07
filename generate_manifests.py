@@ -23,9 +23,10 @@ from textwrap import dedent
 
 OUT = Path(__file__).resolve().parent / "dist"
 
-POOL_CIDR = os.environ.get("SION2K_GATEWAY_POOL_CIDR", "192.168.88.208/29")
+POOL_CIDR = os.environ.get("SION2K_GATEWAY_POOL_CIDR", "")
+CREATE_IP_POOL = os.environ.get("SION2K_CREATE_IP_POOL", "0").lower() in ("1", "true", "yes")
 # Set after pool / first LoadBalancer assignment, or leave placeholder and patch.
-GATEWAY_VIP = os.environ.get("SION2K_GATEWAY_VIP", "PLACEHOLDER_VIP")
+GATEWAY_VIP = os.environ.get("SION2K_GATEWAY_VIP", "192.168.88.114")
 
 GATEWAY_NAME = "public"
 GATEWAY_NS = "gateway-system"
@@ -143,21 +144,24 @@ def httproute(
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
 
-    w(
-        OUT / "01-cilium-pool.yaml",
-        doc_header("Cilium LB pool")
-        + dedent(
-            f"""\
-            apiVersion: cilium.io/v2
-            kind: CiliumLoadBalancerIPPool
-            metadata:
-              name: sion2k-public-gateway-pool
-            spec:
-              blocks:
-                - cidr: "{POOL_CIDR}"
-            """
-        ),
-    )
+    pool_file: str | None = None
+    if CREATE_IP_POOL and POOL_CIDR:
+        pool_file = "01-cilium-pool.yaml"
+        w(
+            OUT / pool_file,
+            doc_header("Cilium LB pool")
+            + dedent(
+                f"""\
+                apiVersion: cilium.io/v2
+                kind: CiliumLoadBalancerIPPool
+                metadata:
+                  name: sion2k-public-gateway-pool
+                spec:
+                  blocks:
+                    - cidr: "{POOL_CIDR}"
+                """
+            ),
+        )
 
     ref_grant_files: list[str] = []
     chunk_size = 16  # API limit per ReferenceGrant spec.from
@@ -814,7 +818,9 @@ spec:
         ),
     )
 
-    kres = ["  - 01-cilium-pool.yaml", "  - 03-gateway-public.yaml"]
+    kres = ["  - 03-gateway-public.yaml"]
+    if pool_file:
+        kres.insert(0, f"  - {pool_file}")
     kres.extend(f"  - {f}" for f in sorted(ref_grant_files))
     for fn in sorted(route_files):
         kres.append(f"  - httproutes/{fn}")

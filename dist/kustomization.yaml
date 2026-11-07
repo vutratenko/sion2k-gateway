@@ -3,7 +3,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - 01-cilium-pool.yaml
   - 03-gateway-public.yaml
   - 02-reference-grants-1.yaml
   - 02-reference-grants-2.yaml
