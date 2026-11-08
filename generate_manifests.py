@@ -277,7 +277,7 @@ spec:
         ("challenger-landing-stage.sion2k.ru", "challenger-landing-stage-secret-ingress", None),
     ]
 
-    # TLS passthrough listeners (protocol TLS, no cert on Gateway) — MTProxy telemt, etc.
+    # TLS passthrough listeners (protocol TLS, no cert on Gateway) — e.g. telemt Fake TLS on :8443; not in HTTPS terminate table.
     tls_passthrough: list[tuple[str, str]] = [
         ("cheeseburger.sion2k.ru", "tls-cheeseburger-sion2k-ru-passthrough"),
     ]
