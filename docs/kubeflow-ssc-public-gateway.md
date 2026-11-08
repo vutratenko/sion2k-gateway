@@ -1,12 +1,12 @@
-# Kubeflow: SSC `kubeflow-step-2` → Gateway `public` (без nginx Ingress)
+# Kubeflow: SSC `kubeflow-step-2` → Gateway `shturval-gateway` (без nginx Ingress)
 
-Публикация UI Kubeflow на `kubeflow.sion2k-cluster.sion2k.ru` через общий Cilium Gateway **`public`** (`gateway-system`) и HTTPRoute из этого репозитория (`dist/httproutes/kubeflow-cluster.yaml`). Istio внутри кластера не меняем; с nginx Ingress на `.9` только снимаем дубль.
+Публикация UI Kubeflow на `kubeflow.sion2k-cluster.sion2k.ru` через платформенный Cilium Gateway **`shturval-gateway`** (`gateway-system`) + ListenerSet `sion2k-app-listeners` и HTTPRoute из этого репозитория (`dist/httproutes/kubeflow-cluster.yaml`). Istio внутри кластера не меняем; с nginx Ingress на `.9` только снимаем дубль.
 
 ## Предусловия
 
 1. Argo/`sion2k-gateway` применён: listener + HTTPRoute `istio-system/kubeflow-cluster` → `istio-ingressgateway:80`, `ResolvedRefs=True`.
 2. TLS secret `kubeflow-cluster-tls` (или alias из `dist/TLS_AND_PORTS.md`) есть в `gateway-system`.
-3. DNS/NAT на VIP Gateway (например `192.168.88.114`), не на ingress `.9`.
+3. DNS/NAT на VIP Gateway **`192.168.88.9`**.
 
 ## Фрагмент `customvalues` (вкладка «Манифест» SSC или merge)
 
@@ -15,7 +15,7 @@ platform-agnostic-mutli-user:
   exposure: gateway
   gateway:
     create: false
-    name: public
+    name: shturval-gateway
     namespace: gateway-system
   ingress:
     enabled: false
@@ -42,7 +42,7 @@ kubectl get shturvalserviceconfig kubeflow-step-2 -o jsonpath='{.status.appliedC
 kubectl get ingress -n istio-system
 # не должно быть kubeflow-step-2-platform-agnostic-mutli-user
 
-VIP=192.168.88.114
+VIP=192.168.88.9
 curl -sk -o /dev/null -w "%{http_code}\n" \
   --resolve "kubeflow.sion2k-cluster.sion2k.ru:443:${VIP}" \
   "https://kubeflow.sion2k-cluster.sion2k.ru/"
@@ -62,4 +62,4 @@ platform-agnostic-mutli-user:
     # rules/tls как были (host kubeflow.sion2k-cluster.sion2k.ru → istio-ingressgateway:8080)
 ```
 
-И при необходимости убрать HTTPRoute с `public` из GitOps (не рекомендуется при живом DNS на `.114`).
+И при необходимости убрать HTTPRoute с `shturval-gateway` из GitOps (не рекомендуется при живом DNS на `.9`).

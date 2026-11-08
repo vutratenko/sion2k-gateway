@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Merge platform-agnostic-mutli-user exposure → Gateway public; disable chart Ingress.
+# Merge platform-agnostic-mutli-user exposure → Gateway shturval-gateway; disable chart Ingress.
 set -euo pipefail
 
 SSC_NAME="${SSC_NAME:-kubeflow-step-2}"
@@ -17,7 +17,7 @@ kubectl get shturvalserviceconfig "$SSC_NAME" -o json | jq '
   .spec.customvalues."platform-agnostic-mutli-user".exposure = "gateway" |
   .spec.customvalues."platform-agnostic-mutli-user".gateway = {
     create: false,
-    name: "public",
+    name: "shturval-gateway",
     namespace: "gateway-system"
   } |
   .spec.customvalues."platform-agnostic-mutli-user".ingress |= (. // {}) |

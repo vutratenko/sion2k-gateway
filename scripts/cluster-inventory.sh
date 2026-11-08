@@ -7,7 +7,7 @@ set -euo pipefail
 EX_NS_REGEX='^(shturval-backend|shturval-cd|monitoring|postgres-operator|victoria-metrics)$'
 PLATFORM_INGRESS_NS_REGEX='^(shturval-backend|shturval-cd|monitoring|postgres-operator|victoria-metrics)$'
 GATEWAY_NS="${GATEWAY_NS:-gateway-system}"
-GATEWAY_NAME="${GATEWAY_NAME:-public}"
+GATEWAY_NAME="${GATEWAY_NAME:-shturval-gateway}"
 
 echo "=== Gateway ${GATEWAY_NS}/${GATEWAY_NAME} ==="
 kubectl get gateway -n "$GATEWAY_NS" "$GATEWAY_NAME" -o wide 2>/dev/null || true

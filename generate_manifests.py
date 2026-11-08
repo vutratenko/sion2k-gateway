@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Generate dist/ — CiliumLoadBalancerIPPool, ReferenceGrants, Gateway `public`, HTTPRoute per app.
+Generate dist/ — CiliumLoadBalancerIPPool, ReferenceGrants, ListenerSet on shturval-gateway, HTTPRoute per app.
 
 Usage:
   cd "$(dirname "$0")" && python3 generate_manifests.py
 
 Before kubectl apply:
-  - Set POOL_CIDR and PLACEHOLDER_VIP (or edit 03-gateway-public.yaml after first pool sync).
+  - Optional POOL_CIDR for legacy public pool; app HTTPS uses ListenerSet on shturval-gateway (192.168.88.9).
   - TLS Secrets named in Gateway listeners must exist in namespace gateway-system (copy/sync from app ns).
   - For challenger.api.sion2k.ru consolidate many Ingress TLS secrets into one Secret in gateway-system.
 
@@ -28,13 +28,14 @@ CREATE_IP_POOL = os.environ.get("SION2K_CREATE_IP_POOL", "0").lower() in ("1", "
 # Set after pool / first LoadBalancer assignment, or leave placeholder and patch.
 GATEWAY_VIP = os.environ.get("SION2K_GATEWAY_VIP", "192.168.88.114")
 
-GATEWAY_NAME = "public"
+GATEWAY_NAME = "shturval-gateway"
 GATEWAY_NS = "gateway-system"
 GATEWAY_CLASS = "cilium"
+LISTENERSET_NAME = "sion2k-app-listeners"
 
 KNOWN_TLSROUTE_NAMESPACES = sorted({"telemt"})
 
-# Namespaces that attach HTTPRoutes to Gateway public (extend when adding routes).
+# Namespaces that attach HTTPRoutes to shturval-gateway (extend when adding routes).
 KNOWN_ROUTE_NAMESPACES = sorted(
     {
         "advance-report",
@@ -107,8 +108,10 @@ def httproute(
     rules: list[tuple[str, str, int, str]],
     *,
     section_name: str | None = None,
+    section_names: list[str] | None = None,
     parent_ns: str = GATEWAY_NS,
-    parent_name: str = GATEWAY_NAME,
+    parent_name: str = LISTENERSET_NAME,
+    parent_kind: str = "ListenerSet",
 ) -> str:
     host_yaml = "\n".join(f"    - {h}" for h in hostnames)
     rule_blocks = []
@@ -124,7 +127,30 @@ def httproute(
             f"          port: {port}"
         )
     rules_yaml = "\n".join(rule_blocks)
-    section = f"\n      sectionName: {section_name}" if section_name else ""
+    def parent_ref_line(*, name: str, ns: str, kind: str, section: str | None) -> str:
+        if kind == "Gateway":
+            sec_line = f"\n      sectionName: {section}" if section else ""
+            return f"    - name: {name}\n      namespace: {ns}{sec_line}"
+        sec_line = f"\n      sectionName: {section}" if section else ""
+        return (
+            f"    - group: gateway.networking.k8s.io\n"
+            f"      kind: ListenerSet\n"
+            f"      name: {name}\n"
+            f"      namespace: {ns}{sec_line}"
+        )
+
+    if section_names:
+        parent_refs = "\n".join(
+            parent_ref_line(name=parent_name, ns=parent_ns, kind=parent_kind, section=s)
+            for s in section_names
+        )
+    else:
+        parent_refs = parent_ref_line(
+            name=parent_name,
+            ns=parent_ns,
+            kind=parent_kind,
+            section=section_name,
+        )
     return (
         f"apiVersion: gateway.networking.k8s.io/v1\n"
         f"kind: HTTPRoute\n"
@@ -133,8 +159,7 @@ def httproute(
         f"  namespace: {namespace}\n"
         f"spec:\n"
         f"  parentRefs:\n"
-        f"    - name: {parent_name}\n"
-        f"      namespace: {parent_ns}{section}\n"
+        f"{parent_refs}\n"
         f"  hostnames:\n"
         f"{host_yaml}\n"
         f"  rules:\n"
@@ -182,15 +207,15 @@ def main() -> None:
             + f"""apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
-  name: allow-httproute-to-public{suffix}
+  name: allow-httproute-to-shturval-gateway{suffix}
   namespace: {GATEWAY_NS}
 spec:
   from:
 {from_lines}
   to:
     - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: {GATEWAY_NAME}
+      kind: ListenerSet
+      name: {LISTENERSET_NAME}
 """,
         )
 
@@ -202,19 +227,19 @@ spec:
         ref_grant_files.append("02-reference-grants-tlsroute.yaml")
         w(
             OUT / "02-reference-grants-tlsroute.yaml",
-            doc_header("TLSRoute attachment to Gateway public")
+            doc_header("TLSRoute attachment to shturval-gateway")
             + f"""apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
-  name: allow-tlsroute-to-public
+  name: allow-tlsroute-to-shturval-gateway
   namespace: {GATEWAY_NS}
 spec:
   from:
 {tls_from}
   to:
     - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: {GATEWAY_NAME}
+      kind: ListenerSet
+      name: {LISTENERSET_NAME}
 """,
         )
 
@@ -276,7 +301,9 @@ spec:
                   tls:
                     mode: Terminate
                     certificateRefs:
-                      - name: {secret}
+                      - kind: Secret
+                        name: {secret}
+                        namespace: {GATEWAY_NS}
                   allowedRoutes:
                     namespaces:
                       from: All"""
@@ -302,45 +329,64 @@ spec:
         )
     passthrough_block = indent_block("\n".join(passthrough_lines), 4) if passthrough_lines else ""
 
-    gw = doc_header("Gateway public + HTTP redirect") + (
+    redirect_hosts = [h for h, _secret, _note in tls]
+    redirect_hosts_yaml = "\n".join(f"    - {h}" for h in redirect_hosts)
+
+    # listeners_block is indented for `listeners:` list items.
+    listenerset_body = (
         f"apiVersion: gateway.networking.k8s.io/v1\n"
-        f"kind: Gateway\n"
+        f"kind: ListenerSet\n"
         f"metadata:\n"
-        f"  name: {GATEWAY_NAME}\n"
+        f"  name: sion2k-app-listeners\n"
         f"  namespace: {GATEWAY_NS}\n"
         f"spec:\n"
-        f"  gatewayClassName: {GATEWAY_CLASS}\n"
-        f"  addresses:\n"
-        f"    - type: IPAddress\n"
-        f"      value: {GATEWAY_VIP}\n"
+        f"  parentRef:\n"
+        f"    group: gateway.networking.k8s.io\n"
+        f"    kind: Gateway\n"
+        f"    name: {GATEWAY_NAME}\n"
+        f"    namespace: {GATEWAY_NS}\n"
         f"  listeners:\n"
-        f"    - name: http\n"
-        f"      port: 80\n"
-        f"      protocol: HTTP\n"
-        f"      allowedRoutes:\n"
-        f"        namespaces:\n"
-        f"          from: All\n"
         f"{listeners_block}\n"
-        f"{passthrough_block}\n"
-        f"---\n"
-        f"apiVersion: gateway.networking.k8s.io/v1\n"
-        f"kind: HTTPRoute\n"
-        f"metadata:\n"
-        f"  name: {GATEWAY_NAME}-http-to-https\n"
-        f"  namespace: {GATEWAY_NS}\n"
-        f"spec:\n"
-        f"  parentRefs:\n"
-        f"    - name: {GATEWAY_NAME}\n"
-        f"      namespace: {GATEWAY_NS}\n"
-        f"      sectionName: http\n"
-        f"  rules:\n"
-        f"    - filters:\n"
-        f"        - type: RequestRedirect\n"
-        f"          requestRedirect:\n"
-        f"            scheme: https\n"
-        f"            statusCode: 301\n"
     )
-    w(OUT / "03-gateway-public.yaml", gw)
+    if passthrough_block:
+        listenerset_body += f"{passthrough_block}\n"
+    w(OUT / "03-listenerset-sion2k.yaml", doc_header("ListenerSet — app HTTPS/TLS on shturval-gateway") + listenerset_body)
+
+    legacy_gw = OUT / "03-gateway-public.yaml"
+    if legacy_gw.exists():
+        legacy_gw.unlink()
+
+    redirect_files: list[str] = []
+    for idx, chunk in enumerate(
+        [redirect_hosts[i : i + 16] for i in range(0, len(redirect_hosts), 16)]
+    ):
+        suffix = "" if idx == 0 else f"-{idx + 1}"
+        fname = f"04-sion2k-http-redirect{suffix}.yaml"
+        redirect_files.append(fname)
+        hosts_yaml = "\n".join(f"    - {h}" for h in chunk)
+        w(
+            OUT / fname,
+            doc_header(f"HTTP→HTTPS redirect chunk{suffix or ''}")
+            + f"""apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sion2k-http-to-https{suffix}
+  namespace: {GATEWAY_NS}
+spec:
+  parentRefs:
+    - name: {GATEWAY_NAME}
+      namespace: {GATEWAY_NS}
+      sectionName: http
+  hostnames:
+{hosts_yaml}
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+""",
+        )
 
     rd = OUT / "httproutes"
     rd.mkdir(parents=True, exist_ok=True)
@@ -353,10 +399,28 @@ spec:
     def sec(host: str) -> str:
         return host_to_section[host]
 
+    def mk_route(
+        name: str,
+        namespace: str,
+        hostnames: list[str],
+        rules: list[tuple[str, str, int, str]],
+        *,
+        section_name: str | None = None,
+        section_names: list[str] | None = None,
+    ) -> str:
+        return httproute(
+            name,
+            namespace,
+            hostnames,
+            rules,
+            section_name=section_name,
+            section_names=section_names,
+        )
+
     # --- Simple one-host routes
     put(
         "advance-report.yaml",
-        httproute(
+        mk_route(
             "advance-report",
             "advance-report",
             ["ao1.l4.sion2k.ru"],
@@ -365,7 +429,7 @@ spec:
     )
     put(
         "teammapper.yaml",
-        httproute(
+        mk_route(
             "teammapper",
             "teammapper",
             ["teammapper.sion2k.ru"],
@@ -374,11 +438,11 @@ spec:
     )
     put(
         "cal-com.yaml",
-        httproute("calcom", "cal-com", ["meet.sion2k.ru"], [("/", "Prefix", 3000, "calcom")]),
+        mk_route("calcom", "cal-com", ["meet.sion2k.ru"], [("/", "Prefix", 3000, "calcom")]),
     )
     put(
         "mlflow.yaml",
-        httproute(
+        mk_route(
             "mlflow",
             "mlflow",
             ["mlflow.sion2k.ru"],
@@ -387,7 +451,7 @@ spec:
     )
     put(
         "homeassistant.yaml",
-        httproute(
+        mk_route(
             "homeassistant",
             "homeassistant",
             ["hass.sion2k.ru"],
@@ -396,7 +460,7 @@ spec:
     )
     put(
         "sion2k-site.yaml",
-        httproute(
+        mk_route(
             "sion2k-site",
             "sion2k-site",
             ["sion2k.ru", "www.sion2k.ru"],
@@ -405,7 +469,7 @@ spec:
     )
     put(
         "ctf-scoreboard.yaml",
-        httproute(
+        mk_route(
             "ctf-scoreboard",
             "shturval-ctf",
             ["ctf.sion2k.ru"],
@@ -414,7 +478,7 @@ spec:
     )
     put(
         "ctf-raffle.yaml",
-        httproute(
+        mk_route(
             "ctf-raffle",
             "shturval-ctf",
             ["raffle.sion2k.ru"],
@@ -423,7 +487,7 @@ spec:
     )
     put(
         "nextcloud.yaml",
-        httproute(
+        mk_route(
             "nextcloud",
             "nextcloud",
             ["cloud.sion2k.ru"],
@@ -432,7 +496,7 @@ spec:
     )
     put(
         "beauty.yaml",
-        httproute(
+        mk_route(
             "chem-ya-krasila",
             "chem-ya-krasila",
             ["beauty.sion2k.ru"],
@@ -444,7 +508,7 @@ spec:
     )
     put(
         "sklad.yaml",
-        httproute(
+        mk_route(
             "sklad",
             "sklad",
             ["sklad.sion2k.ru"],
@@ -456,7 +520,7 @@ spec:
     )
     put(
         "openclaw.yaml",
-        httproute(
+        mk_route(
             "openclaw",
             "openclaw",
             ["jaws.sion2k.ru"],
@@ -470,7 +534,7 @@ spec:
     # Grafinya — two hosts
     put(
         "grafinya-metrics.yaml",
-        httproute(
+        mk_route(
             "grafinya-metrics",
             "grafinya",
             ["metrics.sion2k.ru"],
@@ -482,7 +546,7 @@ spec:
     )
     put(
         "grafinya-s95.yaml",
-        httproute(
+        mk_route(
             "grafinya-s95",
             "grafinya",
             ["dashboards.s95.ru"],
@@ -505,7 +569,9 @@ spec:
               namespace: harbor
             spec:
               parentRefs:
-                - name: {GATEWAY_NAME}
+                - group: gateway.networking.k8s.io
+                  kind: ListenerSet
+                  name: {LISTENERSET_NAME}
                   namespace: {GATEWAY_NS}
               hostnames:
                 - registry.sion2k.ru
@@ -561,7 +627,9 @@ spec:
               namespace: familygram
             spec:
               parentRefs:
-                - name: {GATEWAY_NAME}
+                - group: gateway.networking.k8s.io
+                  kind: ListenerSet
+                  name: {LISTENERSET_NAME}
                   namespace: {GATEWAY_NS}
               hostnames:
                 - familygram.sion2k.ru
@@ -601,7 +669,7 @@ spec:
     # Kubeflow → istio-ingressgateway
     put(
         "kubeflow-cluster.yaml",
-        httproute(
+        mk_route(
             "kubeflow-cluster",
             "istio-system",
             ["kubeflow.sion2k-cluster.sion2k.ru"],
@@ -610,7 +678,7 @@ spec:
     )
     put(
         "kubeflow-flow.yaml",
-        httproute(
+        mk_route(
             "kubeflow-flow",
             "istio-system",
             ["flow.ip-10-31-145-173.shturval.link"],
@@ -621,7 +689,7 @@ spec:
     # Authentik — service name from live release (placeholder)
     put(
         "authentik.yaml",
-        httproute(
+        mk_route(
             "authentik-server",
             "authentik",
             ["auth.sion2k.ru"],
@@ -648,7 +716,9 @@ spec:
                 f"  namespace: {namespace}\n"
                 f"spec:\n"
                 f"  parentRefs:\n"
-                f"    - name: {GATEWAY_NAME}\n"
+                f"    - group: gateway.networking.k8s.io\n"
+                f"      kind: ListenerSet\n"
+                f"      name: {LISTENERSET_NAME}\n"
                 f"      namespace: {GATEWAY_NS}\n"
                 f"  hostnames:\n"
                 f"{host_lines}\n"
@@ -701,7 +771,7 @@ spec:
 
     put(
         "challenger-prod-landing.yaml",
-        httproute(
+        mk_route(
             "challenger-landing-prod",
             "challenger-prod",
             ["challenger.sion2k.ru"],
@@ -710,7 +780,7 @@ spec:
     )
     put(
         "challenger-prod-athlete.yaml",
-        httproute(
+        mk_route(
             "challenger-athlete-prod",
             "challenger-prod",
             ["athlete.challenger.sion2k.ru"],
@@ -719,7 +789,7 @@ spec:
     )
     put(
         "challenger-prod-backoffice.yaml",
-        httproute(
+        mk_route(
             "challenger-backoffice-prod",
             "challenger-prod",
             ["challenger-admin.sion2k.ru"],
@@ -728,7 +798,7 @@ spec:
     )
     put(
         "challenger-prod-espocrm.yaml",
-        httproute(
+        mk_route(
             "challenger-espocrm",
             "challenger-prod",
             ["challenger-crm.sion2k.ru"],
@@ -780,7 +850,7 @@ spec:
 
     put(
         "challenger-stage-landing.yaml",
-        httproute(
+        mk_route(
             "challenger-landing-stage",
             "challenger-stage",
             ["challenger-landing-stage.sion2k.ru"],
@@ -789,7 +859,7 @@ spec:
     )
     put(
         "challenger-stage-athlete.yaml",
-        httproute(
+        mk_route(
             "challenger-athlete-stage",
             "challenger-stage",
             ["athlete.challenger-stage.sion2k.ru"],
@@ -798,7 +868,7 @@ spec:
     )
     put(
         "challenger-stage-backoffice.yaml",
-        httproute(
+        mk_route(
             "challenger-backoffice-stage",
             "challenger-stage",
             ["challenger-stage.sion2k.ru"],
@@ -810,14 +880,16 @@ spec:
         dedent(
             f"""\
             # TLS passthrough to telemt Fake-TLS (port 8443); do not terminate at Gateway.
-            apiVersion: gateway.networking.k8s.io/v1alpha2
+            apiVersion: gateway.networking.k8s.io/v1
             kind: TLSRoute
             metadata:
               name: telemt
               namespace: telemt
             spec:
               parentRefs:
-                - name: {GATEWAY_NAME}
+                - group: gateway.networking.k8s.io
+                  kind: ListenerSet
+                  name: {LISTENERSET_NAME}
                   namespace: {GATEWAY_NS}
                   sectionName: tls-cheeseburger-sion2k-ru-passthrough
               hostnames:
@@ -843,7 +915,9 @@ spec:
               namespace: transmission
             spec:
               parentRefs:
-                - name: {GATEWAY_NAME}
+                - group: gateway.networking.k8s.io
+                  kind: ListenerSet
+                  name: {LISTENERSET_NAME}
                   namespace: {GATEWAY_NS}
               hostnames:
                 - torrent.sion2k.ru
@@ -859,7 +933,7 @@ spec:
         ),
     )
 
-    kres = ["  - 03-gateway-public.yaml"]
+    kres = ["  - 03-listenerset-sion2k.yaml"] + [f"  - {f}" for f in redirect_files]
     if pool_file:
         kres.insert(0, f"  - {pool_file}")
     kres.extend(f"  - {f}" for f in sorted(ref_grant_files))

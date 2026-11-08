@@ -7,7 +7,9 @@ metadata:
   namespace: istio-system
 spec:
   parentRefs:
-    - name: public
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: sion2k-app-listeners
       namespace: gateway-system
   hostnames:
     - kubeflow.sion2k-cluster.sion2k.ru

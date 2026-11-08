@@ -7,7 +7,9 @@ metadata:
   namespace: challenger-prod
 spec:
   parentRefs:
-    - name: public
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: sion2k-app-listeners
       namespace: gateway-system
   hostnames:
     - challenger.sion2k.ru
