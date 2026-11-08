@@ -22,7 +22,7 @@ kubectl get shturvalserviceconfig "$SSC_NAME" -o json | jq '
   } |
   .spec.customvalues."platform-agnostic-mutli-user".ingress |= (. // {}) |
   .spec.customvalues."platform-agnostic-mutli-user".ingress.enabled = false |
-  del(.metadata.resourceVersion, .metadata.uid, .metadata.managedFields, .status)
+  del(.metadata.uid, .metadata.managedFields, .status)
 ' >"$tmp"
 
 kubectl apply -f "$tmp"
