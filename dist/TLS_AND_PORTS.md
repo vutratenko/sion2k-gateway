@@ -1,5 +1,7 @@
 # TLS secret names (must exist in gateway-system) and notes
 
+## HTTPS terminate (ListenerSet listeners)
+
 - `ao1.l4.sion2k.ru` → Secret `advance-report-tls`
 - `teammapper.sion2k.ru` → Secret `teammapper-tls`
 - `meet.sion2k.ru` → Secret `meet-sion2k-ru-tls`
@@ -30,3 +32,7 @@
 - `athlete.challenger-stage.sion2k.ru` → Secret `challenger-athlete-stage-secret-ingress`
 - `challenger-stage.sion2k.ru` → Secret `challenger-stage-secret-ingress`
 - `challenger-landing-stage.sion2k.ru` → Secret `challenger-landing-stage-secret-ingress`
+
+## TLS passthrough (no Secret on Gateway)
+
+- `cheeseburger.sion2k.ru` → listener `tls-cheeseburger-sion2k-ru-passthrough`, TLSRoute `telemt/telemt` → Service `telemt:8443` (MTProto; not HTTPRoute). See docs/telemt-shared-gateway.md.

@@ -12,6 +12,9 @@ Before kubectl apply:
 
 Cross-namespace HTTPRoute: ReferenceGrant in gateway-system must list each route namespace in `from`.
 Edit KNOWN_ROUTE_NAMESPACES if you add apps in new namespaces.
+
+Telemt (cheeseburger.sion2k.ru): TLSRoute + TLS Passthrough on ListenerSet (default, shared VIP .9).
+Optional SION2K_TELEMT_DEDICATED_GATEWAY=1 for a separate Gateway/VIP — see docs/telemt-shared-gateway.md.
 """
 
 from __future__ import annotations
@@ -999,9 +1002,20 @@ spec:
     )
 
     index = OUT / "TLS_AND_PORTS.md"
-    lines = ["# TLS secret names (must exist in gateway-system) and notes\n"]
+    lines = [
+        "# TLS secret names (must exist in gateway-system) and notes\n",
+        "## HTTPS terminate (ListenerSet listeners)\n",
+    ]
     for host, secret, note in tls:
         lines.append(f"- `{host}` → Secret `{secret}`" + (f" — {note}" if note else ""))
+    lines.extend(
+        [
+            "\n## TLS passthrough (no Secret on Gateway)\n",
+            f"- `cheeseburger.sion2k.ru` → listener `{TELEMT_LISTENER_NAME}`, "
+            f"TLSRoute `telemt/telemt` → Service `telemt:8443` (MTProto; not HTTPRoute). "
+            f"See docs/telemt-shared-gateway.md.\n",
+        ]
+    )
     w(index, "\n".join(lines) + "\n")
 
     print(f"Wrote manifests under {OUT}")

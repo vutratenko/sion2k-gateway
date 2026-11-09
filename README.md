@@ -52,16 +52,11 @@ kubectl apply -f argocd/application.yaml
 
 ## Telemt (MTProto — **TLSRoute**, не HTTPRoute)
 
-При зонтичном DNS на **`192.168.88.9`** telemt живёт на том же **`shturval-gateway`**, что и HTTPS-сайты:
+На зонтичном DNS **`192.168.88.9`** telemt и веб-сайты делят **`shturval-gateway`**: Cilium выбирает цепочку по **SNI** (`cheeseburger` → passthrough, остальное → HTTPS terminate).
 
-- В `ListenerSet/sion2k-app-listeners` — listener **`TLS` / `Passthrough`** только для SNI `cheeseburger.sion2k.ru` (не HTTPS Terminate, не HTTPRoute).
-- `TLSRoute/telemt` → `Service/telemt:8443` (порт 8443 внутри кластера, снаружи — 443).
+Кратко: `ListenerSet/sion2k-app-listeners` + `TLSRoute/telemt` → `telemt:8443`. **Без** HTTPRoute и **без** TLS-сертификата на Gateway для cheeseburger.
 
-Cilium на одном `:443` роутит по SNI: `sion2k.ru` — terminate, `cheeseburger…` — passthrough.
-
-Опционально отдельный VIP: `SION2K_TELEMT_DEDICATED_GATEWAY=1` при генерации (если у `cheeseburger` свой A-record).
-
-Подробности: [telemt-k8s README](https://github.com/vutratenko/telemt-k8s).
+Полное описание, проверки и типичные ошибки: **[docs/telemt-shared-gateway.md](docs/telemt-shared-gateway.md)**. Деплой pod/ConfigMap: [telemt-k8s](https://github.com/vutratenko/telemt-k8s).
 
 ## Остальные приложения
 
