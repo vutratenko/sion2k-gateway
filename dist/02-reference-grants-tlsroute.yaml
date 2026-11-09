@@ -12,5 +12,5 @@ spec:
       namespace: telemt
   to:
     - group: gateway.networking.k8s.io
-      kind: ListenerSet
-      name: sion2k-app-listeners
+      kind: Gateway
+      name: telemt-passthrough

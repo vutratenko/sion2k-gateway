@@ -50,14 +50,14 @@ kubectl apply -f argocd/application.yaml
 - **advance-report**, **teammapper**, **Challenger**, и др.: `ingress.enabled: false` в своих репозиториях после `HTTPRoute` `Accepted`.
 - **Kubeflow**: HTTPRoute в `istio-system` → `istio-ingressgateway:80`. SSC — [docs/kubeflow-ssc-public-gateway.md](docs/kubeflow-ssc-public-gateway.md), `./scripts/patch-kubeflow-step-2-ssc.sh` (`gateway.name: shturval-gateway`).
 
-## Telemt (TLS passthrough)
+## Telemt (MTProto — **TLSRoute**, не HTTPRoute)
 
-Хост `cheeseburger.sion2k.ru` — **только** TLS Passthrough, без HTTPS Terminate на Gateway.
+Хост `cheeseburger.sion2k.ru` — Fake TLS / MTProxy: **нельзя** HTTPRoute и HTTPS Terminate.
 
-- Listener: `tls-cheeseburger-sion2k-ru-passthrough` в `03-listenerset-sion2k.yaml`.
-- `TLSRoute/telemt` в namespace `telemt`: `parentRef` → **`ListenerSet/sion2k-app-listeners`** (фактическая схема Cilium/Shтурвал), `backendRefs` → `telemt:8443`.
+- Отдельный Gateway **`telemt-passthrough`** на **`192.168.88.114`** (`05-gateway-telemt-passthrough.yaml`) — один listener TLS Passthrough.
+- `TLSRoute/telemt` → `telemt:8443`. DNS `cheeseburger` должен указывать на **`.114`**, не на `.9`.
 
-Подробности деплоя telemt, генерация ссылок и проверки: [telemt-k8s README](https://github.com/vutratenko/telemt-k8s).
+Подробности: [telemt-k8s README](https://github.com/vutratenko/telemt-k8s).
 
 ## Остальные приложения
 
