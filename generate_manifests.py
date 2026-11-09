@@ -537,7 +537,7 @@ spec:
             "nextcloud",
             "nextcloud",
             ["cloud.sion2k.ru"],
-            [("/", "Prefix", 80, "nextcloud-aio-apache")],
+            [("/", "Prefix", 9888, "nextcloud-aio-apache")],
         ),
     )
     put(
