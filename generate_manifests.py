@@ -32,10 +32,14 @@ GATEWAY_NAME = "shturval-gateway"
 GATEWAY_NS = "gateway-system"
 GATEWAY_CLASS = "cilium"
 LISTENERSET_NAME = "sion2k-app-listeners"
-# Telemt Fake-TLS needs a dedicated Gateway (single TLS passthrough listener). Shared
-# shturval-gateway merges 30+ HTTPS filter chains and breaks MTProto passthrough like nginx stream did.
+# Default: telemt on same VIP as shturval-gateway (.9) via ListenerSet TLS passthrough (SNI cheeseburger).
+# Optional: SION2K_TELEMT_DEDICATED_GATEWAY=1 → separate Gateway (e.g. .114) when cheeseburger has its own A-record.
+TELEMT_DEDICATED_GATEWAY = os.environ.get(
+    "SION2K_TELEMT_DEDICATED_GATEWAY", "0"
+).lower() in ("1", "true", "yes")
 TELEMT_GATEWAY_NAME = os.environ.get("SION2K_TELEMT_GATEWAY_NAME", "telemt-passthrough")
 TELEMT_GATEWAY_VIP = os.environ.get("SION2K_TELEMT_GATEWAY_VIP", "192.168.88.114")
+TELEMT_LISTENER_NAME = "tls-cheeseburger-sion2k-ru-passthrough"
 
 KNOWN_TLSROUTE_NAMESPACES = sorted({"telemt"})
 
@@ -223,30 +227,6 @@ spec:
 """,
         )
 
-    if KNOWN_TLSROUTE_NAMESPACES:
-        tls_from = "\n".join(
-            "    - group: gateway.networking.k8s.io\n      kind: TLSRoute\n      namespace: " + ns
-            for ns in KNOWN_TLSROUTE_NAMESPACES
-        )
-        ref_grant_files.append("02-reference-grants-tlsroute.yaml")
-        w(
-            OUT / "02-reference-grants-tlsroute.yaml",
-            doc_header("TLSRoute attachment to shturval-gateway")
-            + f"""apiVersion: gateway.networking.k8s.io/v1beta1
-kind: ReferenceGrant
-metadata:
-  name: allow-tlsroute-to-shturval-gateway
-  namespace: {GATEWAY_NS}
-spec:
-  from:
-{tls_from}
-  to:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: {TELEMT_GATEWAY_NAME}
-""",
-        )
-
     # hostname -> (tls_secret_in_gateway_system, notes)
     tls: list[tuple[str, str, str | None]] = [
         ("ao1.l4.sion2k.ru", "advance-report-tls", None),
@@ -281,8 +261,6 @@ spec:
         ("challenger-landing-stage.sion2k.ru", "challenger-landing-stage-secret-ingress", None),
     ]
 
-    telemt_listener_name = "tls-cheeseburger-sion2k-ru-passthrough"
-
     listener_lines = []
     host_to_section = {}
     seen_listener_names: set[str] = set()
@@ -311,6 +289,24 @@ spec:
             ).rstrip()
         )
     listeners_block = indent_block("\n".join(listener_lines), 4)
+    passthrough_block = ""
+    if not TELEMT_DEDICATED_GATEWAY:
+        host_to_section["cheeseburger.sion2k.ru"] = TELEMT_LISTENER_NAME
+        passthrough_block = indent_block(
+            dedent(
+                f"""\
+                - name: {TELEMT_LISTENER_NAME}
+                  hostname: "cheeseburger.sion2k.ru"
+                  port: 443
+                  protocol: TLS
+                  tls:
+                    mode: Passthrough
+                  allowedRoutes:
+                    namespaces:
+                      from: All"""
+            ).rstrip(),
+            4,
+        )
 
     redirect_hosts = [h for h, _secret, _note in tls]
     redirect_hosts_yaml = "\n".join(f"    - {h}" for h in redirect_hosts)
@@ -331,13 +327,18 @@ spec:
         f"  listeners:\n"
         f"{listeners_block}\n"
     )
+    if passthrough_block:
+        listenerset_body += f"{passthrough_block}\n"
     w(OUT / "03-listenerset-sion2k.yaml", doc_header("ListenerSet — app HTTPS/TLS on shturval-gateway") + listenerset_body)
 
-    host_to_section["cheeseburger.sion2k.ru"] = telemt_listener_name
-    w(
-        OUT / "05-gateway-telemt-passthrough.yaml",
-        doc_header("Dedicated Gateway — telemt TLS passthrough only (MTProto Fake TLS)")
-        + f"""apiVersion: gateway.networking.k8s.io/v1
+    telemt_gateway_files: list[str] = []
+    if TELEMT_DEDICATED_GATEWAY:
+        host_to_section["cheeseburger.sion2k.ru"] = TELEMT_LISTENER_NAME
+        telemt_gateway_files.append("05-gateway-telemt-passthrough.yaml")
+        w(
+            OUT / "05-gateway-telemt-passthrough.yaml",
+            doc_header("Dedicated Gateway — telemt TLS passthrough only (optional)")
+            + f"""apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: {TELEMT_GATEWAY_NAME}
@@ -348,7 +349,7 @@ spec:
     - type: IPAddress
       value: "{TELEMT_GATEWAY_VIP}"
   listeners:
-    - name: {telemt_listener_name}
+    - name: {TELEMT_LISTENER_NAME}
       hostname: "cheeseburger.sion2k.ru"
       port: 443
       protocol: TLS
@@ -358,7 +359,41 @@ spec:
         namespaces:
           from: All
 """,
-    )
+        )
+    else:
+        legacy_telemt_gw = OUT / "05-gateway-telemt-passthrough.yaml"
+        if legacy_telemt_gw.exists():
+            legacy_telemt_gw.unlink()
+
+    if KNOWN_TLSROUTE_NAMESPACES:
+        tls_from = "\n".join(
+            "    - group: gateway.networking.k8s.io\n      kind: TLSRoute\n      namespace: " + ns
+            for ns in KNOWN_TLSROUTE_NAMESPACES
+        )
+        ref_grant_files.append("02-reference-grants-tlsroute.yaml")
+        if TELEMT_DEDICATED_GATEWAY:
+            tls_to = f"""    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {TELEMT_GATEWAY_NAME}"""
+        else:
+            tls_to = f"""    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: {LISTENERSET_NAME}"""
+        w(
+            OUT / "02-reference-grants-tlsroute.yaml",
+            doc_header("TLSRoute attachment to shturval-gateway")
+            + f"""apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-tlsroute-to-shturval-gateway
+  namespace: {GATEWAY_NS}
+spec:
+  from:
+{tls_from}
+  to:
+{tls_to}
+""",
+        )
 
     legacy_gw = OUT / "03-gateway-public.yaml"
     if legacy_gw.exists():
@@ -883,29 +918,38 @@ spec:
             [("/", "Prefix", 80, "challenger-backoffice-stage-service")],
         ),
     )
+    if TELEMT_DEDICATED_GATEWAY:
+        telemt_parent_refs = (
+            f"  parentRefs:\n"
+            f"    - name: {TELEMT_GATEWAY_NAME}\n"
+            f"      namespace: {GATEWAY_NS}\n"
+            f"      sectionName: {TELEMT_LISTENER_NAME}\n"
+        )
+    else:
+        telemt_parent_refs = (
+            f"  parentRefs:\n"
+            f"    - group: gateway.networking.k8s.io\n"
+            f"      kind: ListenerSet\n"
+            f"      name: {LISTENERSET_NAME}\n"
+            f"      namespace: {GATEWAY_NS}\n"
+            f"      sectionName: {TELEMT_LISTENER_NAME}\n"
+        )
     put(
         "telemt-tlsroute.yaml",
-        dedent(
-            f"""\
-            # MTProto Fake-TLS — TLSRoute (L4 passthrough), NOT HTTPRoute. Dedicated Gateway telemt-passthrough.
-            apiVersion: gateway.networking.k8s.io/v1
-            kind: TLSRoute
-            metadata:
-              name: telemt
-              namespace: telemt
-            spec:
-              parentRefs:
-                - name: {TELEMT_GATEWAY_NAME}
-                  namespace: {GATEWAY_NS}
-                  sectionName: {telemt_listener_name}
-              hostnames:
-                - cheeseburger.sion2k.ru
-              rules:
-                - backendRefs:
-                    - name: telemt
-                      port: 8443
-            """
-        ),
+        "# MTProto Fake-TLS — TLSRoute (L4 passthrough), NOT HTTPRoute.\n"
+        f"apiVersion: gateway.networking.k8s.io/v1\n"
+        f"kind: TLSRoute\n"
+        f"metadata:\n"
+        f"  name: telemt\n"
+        f"  namespace: telemt\n"
+        f"spec:\n"
+        f"{telemt_parent_refs}"
+        f"  hostnames:\n"
+        f"    - cheeseburger.sion2k.ru\n"
+        f"  rules:\n"
+        f"    - backendRefs:\n"
+        f"        - name: telemt\n"
+        f"          port: 8443\n",
     )
 
     # Transmission stub
@@ -939,10 +983,8 @@ spec:
         ),
     )
 
-    kres = [
-        "  - 03-listenerset-sion2k.yaml",
-        "  - 05-gateway-telemt-passthrough.yaml",
-    ] + [f"  - {f}" for f in redirect_files]
+    kres = ["  - 03-listenerset-sion2k.yaml"] + [f"  - {f}" for f in telemt_gateway_files]
+    kres += [f"  - {f}" for f in redirect_files]
     if pool_file:
         kres.insert(0, f"  - {pool_file}")
     kres.extend(f"  - {f}" for f in sorted(ref_grant_files))

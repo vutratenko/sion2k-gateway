@@ -52,10 +52,14 @@ kubectl apply -f argocd/application.yaml
 
 ## Telemt (MTProto — **TLSRoute**, не HTTPRoute)
 
-Хост `cheeseburger.sion2k.ru` — Fake TLS / MTProxy: **нельзя** HTTPRoute и HTTPS Terminate.
+При зонтичном DNS на **`192.168.88.9`** telemt живёт на том же **`shturval-gateway`**, что и HTTPS-сайты:
 
-- Отдельный Gateway **`telemt-passthrough`** на **`192.168.88.114`** (`05-gateway-telemt-passthrough.yaml`) — один listener TLS Passthrough.
-- `TLSRoute/telemt` → `telemt:8443`. DNS `cheeseburger` должен указывать на **`.114`**, не на `.9`.
+- В `ListenerSet/sion2k-app-listeners` — listener **`TLS` / `Passthrough`** только для SNI `cheeseburger.sion2k.ru` (не HTTPS Terminate, не HTTPRoute).
+- `TLSRoute/telemt` → `Service/telemt:8443` (порт 8443 внутри кластера, снаружи — 443).
+
+Cilium на одном `:443` роутит по SNI: `sion2k.ru` — terminate, `cheeseburger…` — passthrough.
+
+Опционально отдельный VIP: `SION2K_TELEMT_DEDICATED_GATEWAY=1` при генерации (если у `cheeseburger` свой A-record).
 
 Подробности: [telemt-k8s README](https://github.com/vutratenko/telemt-k8s).
 
