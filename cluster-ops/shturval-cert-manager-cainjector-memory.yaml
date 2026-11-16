@@ -1,0 +1,18 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-cert-manager-cainjector-memory
+  labels:
+    ops.shturval.tech/ssc: shturval-cert-manager
+spec:
+  customvalues:
+    cainjector:
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 100Mi
+  mode: auto
+  patchOrder: 10001
+  shturvalServiceConfigName: shturval-cert-manager

@@ -1,0 +1,41 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-monitoring-pod-spread
+  labels:
+    ops.shturval.tech/ssc: shturval-monitoring
+spec:
+  customvalues:
+    vminsert:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - shturval-monitoring
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - vminsert
+              topologyKey: kubernetes.io/hostname
+    vmselect:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - shturval-monitoring
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - vmselect
+              topologyKey: kubernetes.io/hostname
+  mode: auto
+  patchOrder: 10002
+  shturvalServiceConfigName: shturval-monitoring

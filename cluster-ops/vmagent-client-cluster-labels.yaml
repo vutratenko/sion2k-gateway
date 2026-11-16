@@ -1,0 +1,8 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  name: client-cluster
+  namespace: sion2k-cluster
+spec:
+  externalLabels:
+    cluster: sion2k-cluster

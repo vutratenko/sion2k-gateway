@@ -1,0 +1,17 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-descheduler-alerting-stability
+  labels:
+    ops.shturval.tech/ssc: shturval-descheduler
+spec:
+  customvalues:
+    deschedulerPolicy:
+      strategies:
+        RemovePodsHavingTooManyRestarts:
+          enabled: false
+        RemoveDuplicates:
+          enabled: true
+  mode: auto
+  patchOrder: 10001
+  shturvalServiceConfigName: shturval-descheduler

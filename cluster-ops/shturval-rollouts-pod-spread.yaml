@@ -1,0 +1,21 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-rollouts-pod-spread
+  labels:
+    ops.shturval.tech/ssc: shturval-rollouts
+spec:
+  customvalues:
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - shturval-rollouts
+            topologyKey: kubernetes.io/hostname
+  mode: auto
+  patchOrder: 10001
+  shturvalServiceConfigName: shturval-rollouts

@@ -1,0 +1,47 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAlertmanagerConfig
+metadata:
+  name: vmalertmanagerconfig-0
+  namespace: sion2k-cluster
+spec:
+  receivers:
+    - name: devnull
+    - name: sion2k
+      telegram_configs:
+        - bot_token:
+            key: token
+            name: vmalertmanagerconfig-telegram-bot-secret-opaque-b6rpn
+            optional: true
+          chat_id: 274201985
+          disable_notifications: false
+          http_config: {}
+          parse_mode: HTML
+          send_resolved: true
+  route:
+    receiver: sion2k
+    group_by:
+      - alertname
+      - namespace
+      - cluster
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 6h
+    matchers:
+      - cluster = "sion2k-cluster"
+    routes:
+      - receiver: devnull
+        matchers:
+          - severity = "info"
+        continue: false
+      - receiver: sion2k
+        matchers:
+          - severity = "critical"
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 6h
+      - receiver: sion2k
+        matchers:
+          - severity = "warning"
+        group_wait: 1m
+        group_interval: 10m
+        repeat_interval: 24h

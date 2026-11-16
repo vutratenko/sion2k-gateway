@@ -1,0 +1,50 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMCluster
+metadata:
+  name: metering
+  namespace: victoria-metrics
+spec:
+  vminsert:
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+                - key: node-role.kubernetes.io/infra
+                  operator: Exists
+            weight: 50
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - vminsert
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                    - shturval-monitoring
+            topologyKey: kubernetes.io/hostname
+  vmselect:
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+                - key: node-role.kubernetes.io/infra
+                  operator: Exists
+            weight: 50
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - vmselect
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                    - shturval-monitoring
+            topologyKey: kubernetes.io/hostname

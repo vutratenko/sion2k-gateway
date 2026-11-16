@@ -1,0 +1,19 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-cd-repo-server-cpu
+  labels:
+    ops.shturval.tech/ssc: shturval-cd
+spec:
+  customvalues:
+    repoServer:
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+  mode: auto
+  patchOrder: 10001
+  shturvalServiceConfigName: shturval-cd

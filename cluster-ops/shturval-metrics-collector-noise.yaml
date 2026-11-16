@@ -1,0 +1,52 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-metrics-collector-noise
+  labels:
+    ops.shturval.tech/ssc: shturval-metrics-collector
+spec:
+  customvalues:
+    vmagent:
+      spec:
+        externalLabels:
+          cluster: sion2k-cluster
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 50m
+            memory: 200Mi
+        extraArgs:
+          promscrape.streamParse: "true"
+          promscrape.dropOriginalLabels: "true"
+          promscrape.maxScrapeSize: "67108864"
+          promscrape.suppressScrapeErrorsDelay: 5m
+    vmagentNode:
+      spec:
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        extraArgs:
+          httpListenAddr: "127.0.0.1:8430"
+          envflag.enable: "true"
+          envflag.prefix: "VM_"
+          promscrape.dropOriginalLabels: "true"
+          promscrape.maxScrapeSize: "67108864"
+          promscrape.streamParse: "true"
+          promscrape.suppressScrapeErrorsDelay: 5m
+    kube-summary-exporter:
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+  mode: auto
+  patchOrder: 10001
+  shturvalServiceConfigName: shturval-metrics-collector
