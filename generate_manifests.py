@@ -239,6 +239,7 @@ spec:
         ("kubeflow.sion2k-cluster.sion2k.ru", "kubeflow-cluster-tls", "issue Certificate or copy; host must match live DNS"),
         ("flow.ip-10-31-145-173.shturval.link", "kubeflow-ingress-tls", None),
         ("mlflow.sion2k.ru", "mlflow-sion2k-ru-tls", None),
+        ("s3.sion2k.ru", "s3-sion2k-ru-tls", "Certificate in gateway-system; DNS A → gateway LB"),
         ("jaws.sion2k.ru", "jaws-sion2k-ru-tls", None),
         ("hass.sion2k.ru", "homeassistant-tls", None),
         ("torrent.sion2k.ru", "torrent-sion2k-ru-tls", "add TLS Certificate; Ingress had force-ssl only"),

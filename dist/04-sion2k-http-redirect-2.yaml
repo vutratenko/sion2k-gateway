@@ -11,6 +11,7 @@ spec:
       namespace: gateway-system
       sectionName: http
   hostnames:
+    - cloud.sion2k.ru
     - familygram.sion2k.ru
     - beauty.sion2k.ru
     - sklad.sion2k.ru

@@ -18,6 +18,7 @@ spec:
     - kubeflow.sion2k-cluster.sion2k.ru
     - flow.ip-10-31-145-173.shturval.link
     - mlflow.sion2k.ru
+    - s3.sion2k.ru
     - jaws.sion2k.ru
     - hass.sion2k.ru
     - torrent.sion2k.ru
@@ -26,7 +27,6 @@ spec:
     - ctf.sion2k.ru
     - raffle.sion2k.ru
     - registry.sion2k.ru
-    - cloud.sion2k.ru
   rules:
     - filters:
         - type: RequestRedirect

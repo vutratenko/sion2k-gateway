@@ -103,6 +103,19 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-s3-sion2k-ru
+      hostname: "s3.sion2k.ru"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: s3-sion2k-ru-tls
+            namespace: gateway-system
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: https-jaws-sion2k-ru
       hostname: "jaws.sion2k.ru"
       port: 443

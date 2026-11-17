@@ -9,6 +9,7 @@
 - `kubeflow.sion2k-cluster.sion2k.ru` → Secret `kubeflow-cluster-tls` — issue Certificate or copy; host must match live DNS
 - `flow.ip-10-31-145-173.shturval.link` → Secret `kubeflow-ingress-tls`
 - `mlflow.sion2k.ru` → Secret `mlflow-sion2k-ru-tls`
+- `s3.sion2k.ru` → Secret `s3-sion2k-ru-tls` — Certificate in gateway-system; DNS A → gateway LB
 - `jaws.sion2k.ru` → Secret `jaws-sion2k-ru-tls`
 - `hass.sion2k.ru` → Secret `homeassistant-tls`
 - `torrent.sion2k.ru` → Secret `torrent-sion2k-ru-tls` — add TLS Certificate; Ingress had force-ssl only
