@@ -47,7 +47,7 @@ kubectl apply -f argocd/application.yaml
 
 ## Связка с приложениями
 
-- **advance-report**, **teammapper**, **Challenger**, и др.: `ingress.enabled: false` в своих репозиториях после `HTTPRoute` `Accepted`.
+- **advance-report**, **teammapper**, **Challenger** (Helm chart `httpRoute.enabled`), и др.: `ingress.enabled: false` в своих репозиториях после `HTTPRoute` `Accepted`. Challenger API routes live in `challenger-communities/helm`, not in this repo.
 - **Kubeflow**: HTTPRoute в `istio-system` → `istio-ingressgateway:80`. SSC — [docs/kubeflow-ssc-public-gateway.md](docs/kubeflow-ssc-public-gateway.md), `./scripts/patch-kubeflow-step-2-ssc.sh` (`gateway.name: shturval-gateway`).
 
 ## Telemt (MTProto — **TLSRoute**, не HTTPRoute)

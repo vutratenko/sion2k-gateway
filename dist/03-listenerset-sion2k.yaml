@@ -415,6 +415,19 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-alerts-sion2k-cluster-sion2k-ru
+      hostname: "alerts.sion2k-cluster.sion2k.ru"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: alerts-cluster-tls
+            namespace: gateway-system
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: tls-cheeseburger-sion2k-ru-passthrough
       hostname: "cheeseburger.sion2k.ru"
       port: 443

@@ -51,10 +51,10 @@ spec:
       namespace: openclaw
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: shturval-ctf
+      namespace: shturval-alert-wall
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: sion2k-site
+      namespace: shturval-ctf
   to:
     - group: gateway.networking.k8s.io
       kind: ListenerSet

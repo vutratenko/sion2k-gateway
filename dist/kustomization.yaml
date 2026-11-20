@@ -6,6 +6,7 @@ resources:
   - 03-listenerset-sion2k.yaml
   - 04-sion2k-http-redirect.yaml
   - 04-sion2k-http-redirect-2.yaml
+  - 05-certificates.yaml
   - 02-reference-grants-1.yaml
   - 02-reference-grants-2.yaml
   - 02-reference-grants-tlsroute.yaml
@@ -13,17 +14,7 @@ resources:
   - httproutes/authentik.yaml
   - httproutes/beauty.yaml
   - httproutes/cal-com.yaml
-  - httproutes/challenger-prod-api-1.yaml
-  - httproutes/challenger-prod-api-2.yaml
-  - httproutes/challenger-prod-athlete.yaml
-  - httproutes/challenger-prod-backoffice.yaml
   - httproutes/challenger-prod-espocrm.yaml
-  - httproutes/challenger-prod-landing.yaml
-  - httproutes/challenger-stage-api-1.yaml
-  - httproutes/challenger-stage-api-2.yaml
-  - httproutes/challenger-stage-athlete.yaml
-  - httproutes/challenger-stage-backoffice.yaml
-  - httproutes/challenger-stage-landing.yaml
   - httproutes/ctf-raffle.yaml
   - httproutes/ctf-scoreboard.yaml
   - httproutes/familygram.yaml

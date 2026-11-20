@@ -68,8 +68,14 @@ KNOWN_ROUTE_NAMESPACES = sorted(
         "grafinya",
         "challenger-prod",
         "challenger-stage",
+        "shturval-alert-wall",
     }
 )
+
+# cert-manager Certificates in gateway-system (secretName == metadata.name)
+GATEWAY_CERTIFICATES: list[tuple[str, str]] = [
+    ("alerts.sion2k-cluster.sion2k.ru", "alerts-cluster-tls"),
+]
 
 
 def w(path: Path, content: str) -> None:
@@ -263,6 +269,7 @@ spec:
         ("athlete.challenger-stage.sion2k.ru", "challenger-athlete-stage-secret-ingress", None),
         ("challenger-stage.sion2k.ru", "challenger-stage-secret-ingress", None),
         ("challenger-landing-stage.sion2k.ru", "challenger-landing-stage-secret-ingress", None),
+        ("alerts.sion2k-cluster.sion2k.ru", "alerts-cluster-tls", "Certificate in gateway-system"),
     ]
 
     listener_lines = []
@@ -775,74 +782,7 @@ spec:
                 body += rule_block(path, ptype, port, svc)
             put(f"{file_stem}{suffix or ''}.yaml", body)
 
-    # --- Challenger prod API (shared host)
-    paths_prod = [
-        ("/api/v1/health", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/bots", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/chats", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/group-chats", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/emoji-packs", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/custom-emoji-files", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/mini-app", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/webhooks", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/webhooks", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/v1", "Prefix", 8080, "challenger-bots-prod-service"),
-        ("/api/v1/clubs", "Prefix", 8000, "challenger-clubs-prod-service"),
-        ("/api/v1/sports", "Prefix", 8080, "challenger-competitions-prod-service"),
-        ("/api/v1/competitions", "Prefix", 8080, "challenger-competitions-prod-service"),
-        ("/api/v1/competition-results", "Prefix", 8080, "challenger-competitions-prod-service"),
-        ("/api/v1/stats", "Prefix", 8080, "challenger-competitions-prod-service"),
-        ("/api/v1/events", "Prefix", 8080, "challenger-events-prod-service"),
-        ("/api/v1/notifications", "Prefix", 8080, "challenger-notifications-prod-service"),
-        ("/api/v1/parkruns", "Prefix", 8080, "challenger-parkruns-prod-service"),
-        ("/api/v1/systems", "Prefix", 8080, "challenger-parkruns-prod-service"),
-        ("/api/v1/parkrun-bindings", "Prefix", 8080, "challenger-parkruns-prod-service"),
-        ("/api/v1/parkrun-results", "Prefix", 8080, "challenger-parkruns-prod-service"),
-        ("/api/v1/club-banners", "Prefix", 8080, "challenger-parkruns-prod-service"),
-        ("/api/v1/results", "Prefix", 8080, "challenger-recommendations-prod-service"),
-        ("/api/v1/bindings", "Prefix", 8080, "challenger-runc-prod-service"),
-        ("/api/v1/sync", "Prefix", 8080, "challenger-runc-prod-service"),
-        ("/api/v1/runc", "Prefix", 8080, "challenger-runc-prod-service"),
-        ("/api/v1/me/achievements", "Prefix", 8080, "challenger-achievements-prod-service"),
-        ("/api/v1/achievements", "Prefix", 8080, "challenger-achievements-prod-service"),
-        ("/static/achievements", "Prefix", 8080, "challenger-achievements-prod-service"),
-        ("/", "Prefix", 8080, "challenger-backend-prod-service"),
-    ]
-    put_path_rules_routes(
-        "challenger-prod-api",
-        "challenger-api-prod",
-        "challenger-prod",
-        ["challenger.api.sion2k.ru"],
-        paths_prod,
-    )
-
-    put(
-        "challenger-prod-landing.yaml",
-        mk_route(
-            "challenger-landing-prod",
-            "challenger-prod",
-            ["challenger.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-landing-prod-service")],
-        ),
-    )
-    put(
-        "challenger-prod-athlete.yaml",
-        mk_route(
-            "challenger-athlete-prod",
-            "challenger-prod",
-            ["athlete.challenger.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-athlete-app-prod-service")],
-        ),
-    )
-    put(
-        "challenger-prod-backoffice.yaml",
-        mk_route(
-            "challenger-backoffice-prod",
-            "challenger-prod",
-            ["challenger-admin.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-backoffice-service")],
-        ),
-    )
+    # Challenger API and app HTTPRoutes are owned by oci://registry.sion2k.ru/challenger/challenger (httpRoute in chart).
     put(
         "challenger-prod-espocrm.yaml",
         mk_route(
@@ -853,75 +793,6 @@ spec:
         ),
     )
 
-    paths_stage = [
-        ("/api/v1/health", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/bots", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/chats", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/group-chats", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/emoji-packs", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/custom-emoji-files", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/mini-app", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/webhooks", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/webhooks", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/v1", "Prefix", 8080, "challenger-bots-stage-service"),
-        ("/api/v1/clubs", "Prefix", 8000, "challenger-clubs-stage-service"),
-        ("/api/v1/sports", "Prefix", 8080, "challenger-competitions-stage-service"),
-        ("/api/v1/competitions", "Prefix", 8080, "challenger-competitions-stage-service"),
-        ("/api/v1/competition-results", "Prefix", 8080, "challenger-competitions-stage-service"),
-        ("/api/v1/stats", "Prefix", 8080, "challenger-competitions-stage-service"),
-        ("/api/v1/events", "Prefix", 8080, "challenger-events-stage-service"),
-        ("/api/v1/notifications", "Prefix", 8080, "challenger-notifications-stage-service"),
-        ("/api/v1/parkruns", "Prefix", 8080, "challenger-parkruns-stage-service"),
-        ("/api/v1/systems", "Prefix", 8080, "challenger-parkruns-stage-service"),
-        ("/api/v1/parkrun-bindings", "Prefix", 8080, "challenger-parkruns-stage-service"),
-        ("/api/v1/parkrun-results", "Prefix", 8080, "challenger-parkruns-stage-service"),
-        ("/api/v1/club-banners", "Prefix", 8080, "challenger-parkruns-stage-service"),
-        ("/api/v1/results", "Prefix", 8080, "challenger-recommendations-stage-service"),
-        ("/api/v1/bindings", "Prefix", 8080, "challenger-runc-service"),
-        ("/api/v1/sync", "Prefix", 8080, "challenger-runc-service"),
-        ("/api/v1/runc", "Prefix", 8080, "challenger-runc-service"),
-        ("/api/v1/me/achievements", "Prefix", 8080, "challenger-achievements-stage-service"),
-        ("/api/v1/achievements", "Prefix", 8080, "challenger-achievements-stage-service"),
-        ("/static/achievements", "Prefix", 8080, "challenger-achievements-stage-service"),
-        ("/api/v1/legals", "Prefix", 8080, "challenger-legals-stage-service"),
-        ("/api/v1/me/legals", "Prefix", 8080, "challenger-legals-stage-service"),
-        ("/", "Prefix", 8080, "challenger-backend-stage-service"),
-    ]
-    put_path_rules_routes(
-        "challenger-stage-api",
-        "challenger-api-stage",
-        "challenger-stage",
-        ["challenger-stage.api.sion2k.ru"],
-        paths_stage,
-    )
-
-    put(
-        "challenger-stage-landing.yaml",
-        mk_route(
-            "challenger-landing-stage",
-            "challenger-stage",
-            ["challenger-landing-stage.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-landing-stage-service")],
-        ),
-    )
-    put(
-        "challenger-stage-athlete.yaml",
-        mk_route(
-            "challenger-athlete-stage",
-            "challenger-stage",
-            ["athlete.challenger-stage.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-athlete-app-stage-service")],
-        ),
-    )
-    put(
-        "challenger-stage-backoffice.yaml",
-        mk_route(
-            "challenger-backoffice-stage",
-            "challenger-stage",
-            ["challenger-stage.sion2k.ru"],
-            [("/", "Prefix", 80, "challenger-backoffice-stage-service")],
-        ),
-    )
     if TELEMT_DEDICATED_GATEWAY:
         telemt_parent_refs = (
             f"  parentRefs:\n"
@@ -987,10 +858,41 @@ spec:
         ),
     )
 
+    cert_docs = []
+    for host, secret_name in GATEWAY_CERTIFICATES:
+        cert_docs.append(
+            dedent(
+                f"""\
+                apiVersion: cert-manager.io/v1
+                kind: Certificate
+                metadata:
+                  name: {secret_name}
+                  namespace: {GATEWAY_NS}
+                  annotations:
+                    argocd.argoproj.io/sync-wave: "-2"
+                spec:
+                  secretName: {secret_name}
+                  issuerRef:
+                    name: corp-acme
+                    kind: ClusterIssuer
+                  dnsNames:
+                    - {host}
+                """
+            )
+        )
+    if cert_docs:
+        w(
+            OUT / "05-certificates.yaml",
+            doc_header("gateway certificates")
+            + "---\n".join(cert_docs),
+        )
+
     kres = ["  - 03-listenerset-sion2k.yaml"] + [f"  - {f}" for f in telemt_gateway_files]
     kres += [f"  - {f}" for f in redirect_files]
     if pool_file:
         kres.insert(0, f"  - {pool_file}")
+    if cert_docs:
+        kres.append("  - 05-certificates.yaml")
     kres.extend(f"  - {f}" for f in sorted(ref_grant_files))
     for fn in sorted(route_files):
         kres.append(f"  - httproutes/{fn}")

@@ -9,6 +9,9 @@ spec:
   from:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
+      namespace: sion2k-site
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
       namespace: sklad
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
