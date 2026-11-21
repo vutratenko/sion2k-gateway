@@ -1,0 +1,22 @@
+apiVersion: ops.shturval.tech/v1beta2
+kind: ShturvalServicePatch
+metadata:
+  name: shturval-cd-application-controller-memory
+  labels:
+    ops.shturval.tech/ssc: shturval-cd
+spec:
+  customvalues:
+    controller:
+      env:
+        - name: GOMEMLIMIT
+          value: 5GiB
+      resources:
+        limits:
+          cpu: "2"
+          memory: 6Gi
+        requests:
+          cpu: 300m
+          memory: 1Gi
+  mode: auto
+  patchOrder: 10002
+  shturvalServiceConfigName: shturval-cd

@@ -12,6 +12,8 @@ kubectl apply -f shturval-descheduler-policy.yaml
 kubectl apply -f shturval-monitoring-pod-spread.yaml
 kubectl apply -f shturval-rollouts-pod-spread.yaml
 kubectl apply -f shturval-metrics-collector-noise.yaml
+kubectl apply -f shturval-cd-application-controller-memory.yaml
+kubectl patch -n sion2k-cluster vmrule vmrule-system-0 --type json --patch-file vmrule-system-0-apiserver-sli.patch.json
 ```
 
 See `descheduler-policy-direct-patch.md` if Helm re-enables `RemovePodsHavingTooManyRestarts`.

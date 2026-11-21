@@ -1,0 +1,7 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/groups/15/rules/3/expr",
+    "value": "increase(sum by (verb, scope, le) (apiserver_request_sli_duration_seconds_bucket)[1h:])"
+  }
+]
