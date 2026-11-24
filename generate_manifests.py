@@ -65,7 +65,6 @@ KNOWN_ROUTE_NAMESPACES = sorted(
         "familygram",
         "chem-ya-krasila",
         "sklad",
-        "grafinya",
         "challenger-prod",
         "challenger-stage",
         "shturval-alert-wall",
@@ -258,8 +257,6 @@ spec:
         ("familygram.sion2k.ru", "familygram-tls", None),
         ("beauty.sion2k.ru", "beauty-sion2k-ru-tls", None),
         ("sklad.sion2k.ru", "sklad-tls", None),
-        ("metrics.sion2k.ru", "grafinya-tls", None),
-        ("dashboards.s95.ru", "grafinya-s95-tls", None),
         ("challenger.api.sion2k.ru", "challenger-api-sion2k-ru-tls", "consolidate per-Ingress secrets into one"),
         ("challenger.sion2k.ru", "challenger-landing-prod-secret-ingress", None),
         ("athlete.challenger.sion2k.ru", "challenger-athlete-prod-secret-ingress", None),
@@ -581,32 +578,6 @@ spec:
             [
                 ("/", "Prefix", 18789, "openclaw-openclaw-stack-openclaw"),
                 ("/apps/talk/r/spreed", "Exact", 8788, "openclaw-openclaw-stack-openclaw"),
-            ],
-        ),
-    )
-
-    # Grafinya — two hosts
-    put(
-        "grafinya-metrics.yaml",
-        mk_route(
-            "grafinya-metrics",
-            "grafinya",
-            ["metrics.sion2k.ru"],
-            [
-                ("/api/v1", "Prefix", 8080, "grafinya-backend"),
-                ("/", "Prefix", 80, "grafinya-frontend"),
-            ],
-        ),
-    )
-    put(
-        "grafinya-s95.yaml",
-        mk_route(
-            "grafinya-s95",
-            "grafinya",
-            ["dashboards.s95.ru"],
-            [
-                ("/api/v1", "Prefix", 8080, "grafinya-backend"),
-                ("/", "Prefix", 80, "grafinya-frontend"),
             ],
         ),
     )

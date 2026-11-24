@@ -22,8 +22,6 @@
 - `familygram.sion2k.ru` → Secret `familygram-tls`
 - `beauty.sion2k.ru` → Secret `beauty-sion2k-ru-tls`
 - `sklad.sion2k.ru` → Secret `sklad-tls`
-- `metrics.sion2k.ru` → Secret `grafinya-tls`
-- `dashboards.s95.ru` → Secret `grafinya-s95-tls`
 - `challenger.api.sion2k.ru` → Secret `challenger-api-sion2k-ru-tls` — consolidate per-Ingress secrets into one
 - `challenger.sion2k.ru` → Secret `challenger-landing-prod-secret-ingress`
 - `athlete.challenger.sion2k.ru` → Secret `challenger-athlete-prod-secret-ingress`

@@ -30,9 +30,6 @@ spec:
       namespace: familygram
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: grafinya
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
       namespace: harbor
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
@@ -55,6 +52,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: shturval-ctf
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: sion2k-site
   to:
     - group: gateway.networking.k8s.io
       kind: ListenerSet

@@ -272,32 +272,6 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    - name: https-metrics-sion2k-ru
-      hostname: "metrics.sion2k.ru"
-      port: 443
-      protocol: HTTPS
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: grafinya-tls
-            namespace: gateway-system
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-dashboards-s95-ru
-      hostname: "dashboards.s95.ru"
-      port: 443
-      protocol: HTTPS
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: grafinya-s95-tls
-            namespace: gateway-system
-      allowedRoutes:
-        namespaces:
-          from: All
     - name: https-challenger-api-sion2k-ru
       hostname: "challenger.api.sion2k.ru"
       port: 443

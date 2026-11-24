@@ -18,8 +18,6 @@ resources:
   - httproutes/ctf-raffle.yaml
   - httproutes/ctf-scoreboard.yaml
   - httproutes/familygram.yaml
-  - httproutes/grafinya-metrics.yaml
-  - httproutes/grafinya-s95.yaml
   - httproutes/harbor.yaml
   - httproutes/homeassistant.yaml
   - httproutes/kubeflow-cluster.yaml
