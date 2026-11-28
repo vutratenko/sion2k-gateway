@@ -68,12 +68,14 @@ KNOWN_ROUTE_NAMESPACES = sorted(
         "challenger-prod",
         "challenger-stage",
         "shturval-alert-wall",
+        "budget-inbox",
     }
 )
 
 # cert-manager Certificates in gateway-system (secretName == metadata.name)
 GATEWAY_CERTIFICATES: list[tuple[str, str]] = [
     ("alerts.sion2k-cluster.sion2k.ru", "alerts-cluster-tls"),
+    ("budget.sion2k-cluster.sion2k.ru", "budget-inbox-tls"),
 ]
 
 
@@ -267,6 +269,7 @@ spec:
         ("challenger-stage.sion2k.ru", "challenger-stage-secret-ingress", None),
         ("challenger-landing-stage.sion2k.ru", "challenger-landing-stage-secret-ingress", None),
         ("alerts.sion2k-cluster.sion2k.ru", "alerts-cluster-tls", "Certificate in gateway-system"),
+        ("budget.sion2k-cluster.sion2k.ru", "budget-inbox-tls", "Certificate in gateway-system"),
     ]
 
     listener_lines = []

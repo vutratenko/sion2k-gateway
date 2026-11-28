@@ -32,6 +32,7 @@
 - `challenger-stage.sion2k.ru` → Secret `challenger-stage-secret-ingress`
 - `challenger-landing-stage.sion2k.ru` → Secret `challenger-landing-stage-secret-ingress`
 - `alerts.sion2k-cluster.sion2k.ru` → Secret `alerts-cluster-tls` — Certificate in gateway-system
+- `budget.sion2k-cluster.sion2k.ru` → Secret `budget-inbox-tls` — Certificate in gateway-system
 
 ## TLS passthrough (no Secret on Gateway)
 

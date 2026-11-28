@@ -15,6 +15,9 @@ spec:
       namespace: authentik
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
+      namespace: budget-inbox
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
       namespace: cal-com
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
@@ -52,9 +55,6 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: shturval-ctf
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      namespace: sion2k-site
   to:
     - group: gateway.networking.k8s.io
       kind: ListenerSet

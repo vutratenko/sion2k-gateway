@@ -14,3 +14,18 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - alerts.sion2k-cluster.sion2k.ru
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: budget-inbox-tls
+  namespace: gateway-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  secretName: budget-inbox-tls
+  issuerRef:
+    name: corp-acme
+    kind: ClusterIssuer
+  dnsNames:
+    - budget.sion2k-cluster.sion2k.ru

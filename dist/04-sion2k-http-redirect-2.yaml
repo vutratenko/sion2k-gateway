@@ -25,6 +25,7 @@ spec:
     - challenger-stage.sion2k.ru
     - challenger-landing-stage.sion2k.ru
     - alerts.sion2k-cluster.sion2k.ru
+    - budget.sion2k-cluster.sion2k.ru
   rules:
     - filters:
         - type: RequestRedirect
